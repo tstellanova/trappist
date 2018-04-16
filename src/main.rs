@@ -12,8 +12,6 @@ use std::time::Duration;
 use std::io::Write;
 use chrono::prelude::*;
 use rscam::*;
-use rscam::{Camera, Control, CtrlData};
-
 
 
 fn process_trigger() {
@@ -26,12 +24,17 @@ fn capture_one() {
   let fname = time_str.clone();
 
   let mut camera = rscam::new("/dev/video0").unwrap();
+  // v4l2-ctl --set-ctrl=auto_exposure=1
+  // v4l2-ctl --set-ctrl=rotate=180
   camera.set_control(CID_EXPOSURE_AUTO, EXPOSURE_AUTO).unwrap();
+  camera.set_control(CID_ROTATE, 180).unwrap();
+
+
 
   println!("starting camera...");
   camera.start(&rscam::Config {
     interval: (1, 10),      // 10 fps.
-    resolution:  (1280, 720), //(1920, 1080), //(1024, 768),
+    resolution:  (1280, 960), //(1920, 1080), //(2592 , 1944), //(1280, 720), //(1920, 1080), //(1024, 768),
     format: b"MJPG",
     ..Default::default()
   }).unwrap();
