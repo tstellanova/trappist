@@ -2,10 +2,10 @@ extern crate pigrust;
 extern crate chrono;
 extern crate rscam;
 extern crate runas;
+extern crate rand;
 
 // GPIO pin for PIR motion detector
 const PIR_INPUT: u32 = 24;
-
 
 use pigrust::board_control::*;
 use std::thread::sleep;
@@ -16,13 +16,22 @@ use rscam::*;
 use rscam::{Camera, CtrlData};
 use rscam::FLAG_DISABLED;
 use runas::Command;
+#[macro_use]
+extern crate lazy_static;
+
+lazy_static! {
+  static ref STREAM_BASE: u32 = rand::random();
+}
+
+static mut NUM_CAPS: i32 = 0;
 
 
 fn process_trigger() {
-  let dt = Local::now();
-  let hour = dt.hour();
-  if hour > 18 || hour < 7 {
-    capture_ext();
+  
+  unsafe {
+    let fname  = format!("{}-{}.jpg", STREAM_BASE.to_string(), NUM_CAPS.to_string() );
+    NUM_CAPS += 1;
+    capture_raspistill(&fname);
   }
 }
 
@@ -76,25 +85,44 @@ fn dump_settings() {
     }
 }
 
-fn capture_ext() {
-  let now: DateTime<Local> = Local::now();
-  let time_str = now.format("%Y%m%d_%H%M%S-cap.jpg").to_string();
-  let fname = time_str.clone();
+/**
+This capture method uses the canned `raspistill` command to
+capture still images using the best available settings.
+This works slightly better for the Pi camera than using the
+rscam abstraction layers.
+
+*/
+fn capture_raspistill(filename: &str) {
+  //let now: DateTime<Local> = Local::now();
+  //let time_str = now.format("%Y%m%d_%H%M%S-cap.jpg").to_string();
+  //let fname = time_str.clone();
 
   //raspistill -v -n -rot 180 -o
   let status = Command::new("raspistill")
 	.arg("-n")
 	.arg("-rot").arg("180")
 	.arg("-t").arg("250")
-	.arg("-o").arg(fname)
+	.arg("-o").arg(filename)
 	.status().expect("cmd failed!");
 
-  println!("status {}", status);
+  if !status.success()  {
+    println!("status {}", status);
+  }
+  else {
+    println!("wrote {}", filename);
+  }
+
 
 
 }
 
-fn capture_one() {
+/**
+This capture method uses rscam.
+This is a bit more abstracted than the raspberry pi camera,
+but might be useful for capture snapshots from a non-Pi board.
+
+*/
+fn capture_rscam() {
   let now: DateTime<Local> = Local::now();
   let time_str = now.format("%Y%m%d_%H%M%S-cap.jpg").to_string();
   let fname = time_str.clone();
@@ -143,12 +171,13 @@ fn main() {
   println!("Initialized pigpiod. ");
 
   //dump_settings();
-  //capture_one();
-  capture_ext();
+  //capture_rscam();
+  //capture_raspistill();
 
   bc.set_gpio_mode(PIR_INPUT, GpioMode::Input);
   bc.set_pull_up_down(PIR_INPUT, GpioPullOption::Down);
 
+  // start listening for a rising edge on our PIR sensor input pin 
   bc.add_edge_detector(PIR_INPUT,  GpioEdgeDetect::RisingEdge, gpio_trigger_fn);
   loop { 
     sleep(Duration::from_secs(5));
