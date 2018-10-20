@@ -12,7 +12,6 @@ const LED2: u32 = 24;
 use pigrust::board_control::*;
 use std::thread::sleep;
 use std::time::Duration;
-use std::io::Write;
 use chrono::prelude::*;
 use runas::Command;
 #[macro_use]
@@ -34,6 +33,32 @@ fn process_trigger() {
   }
 }
 
+fn set_illumination(bc: &BoardController, enable: bool) {
+
+  if enable {
+    bc.gpio_write(LED1, 0);
+    bc.gpio_write(LED2, 0);
+  }
+  else {
+    bc.gpio_write(LED1, 1);
+    bc.gpio_write(LED2, 1);
+  }
+}
+
+
+// Capture one still image 
+fn capture_one_snapshot() {
+  let bc = BoardController::new();
+
+  let now: DateTime<Local> = Local::now();
+  let time_str = now.format("%Y%m%d_%H%M%S-cap.jpg").to_string();
+  let fname = time_str.clone();
+
+  set_illumination(&bc, true);
+  capture_raspistill(&fname);
+  set_illumination(&bc, false);
+
+}
 
 /**
 This capture method uses the canned `raspistill` command to
@@ -43,10 +68,6 @@ rscam abstraction layers.
 
 */
 fn capture_raspistill(filename: &str) {
-
-  // turn on illuminators
-  //bc.gpio_write(LED1, 1);
-  //bc.gpio_write(LED2, 1);
 
   //raspistill -v -n -rot 180 -o
   let status = Command::new("raspistill")
@@ -63,9 +84,6 @@ fn capture_raspistill(filename: &str) {
     println!("wrote {}", filename);
   }
 
-  // turn off illuminators
-  //bc.gpio_write(LED1, 0);
-  //bc.gpio_write(LED2, 0);
 }
 
 
@@ -81,26 +99,24 @@ pub extern fn gpio_trigger_fn(_daemon_id: i32, gpio: u32, _level: u32, _tick: u3
 fn main() {
   let bc  = BoardController::new();
   println!("Initialized pigpiod. ");
-
-  //dump_settings();
-
-  let now: DateTime<Local> = Local::now();
-  let time_str = now.format("%Y%m%d_%H%M%S-cap.jpg").to_string();
-  let fname = time_str.clone();
-
-  capture_raspistill(&fname);
-
   bc.set_gpio_mode(LED1, GpioMode::Output);
   bc.set_gpio_mode(LED2, GpioMode::Output);
-
-  bc.gpio_write(LED1, 0);
-  bc.gpio_write(LED2, 0);
-
   bc.set_gpio_mode(PIR_INPUT, GpioMode::Input);
   bc.set_pull_up_down(PIR_INPUT, GpioPullOption::Up);
 
+  capture_one_snapshot();
+
   // start listening for a rising edge on our PIR sensor input pin 
-  bc.add_edge_detector(PIR_INPUT,  GpioEdgeDetect::FallingEdge, gpio_trigger_fn);
+  //bc.add_edge_detector(PIR_INPUT,  GpioEdgeDetect::FallingEdge, gpio_trigger_fn);
+
+  // start listening for a falling edge on our (inverted) PIR sensor input pin
+  bc.add_edge_detector_closure(PIR_INPUT, GpioEdgeDetect::FallingEdge,
+     |gpio, level| {
+        println!("closure! with {} {} ", gpio, level);
+        capture_one_snapshot();
+      });
+
+  //loop forever waiting for PIR triggers
   loop { 
     sleep(Duration::from_secs(5));
   }
