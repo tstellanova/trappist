@@ -68,6 +68,21 @@ fn capture_raspistill(filename: &str) {
 
 }
 
+fn safe_shutdown() {
+  //shutdown -h now
+  let status = Command::new("shutdown")
+	.arg("-h").arg("now")
+	.status().expect("cmd failed!");
+
+  if !status.success()  {
+    println!("shutdown failed {}", status);
+  }
+  else {
+    println!("shutdown");
+  }
+
+}
+
 
 fn main() {
   let bc  = BoardController::new();
@@ -79,6 +94,7 @@ fn main() {
   bc.set_gpio_mode(PIR_INPUT, GpioMode::Input);
   bc.set_pull_up_down(PIR_INPUT, GpioPullOption::Down);
 
+  // when this process is first launched, we capture an image as soon as we can
   capture_one_snapshot();
 
   // start listening for a falling edge on our (inverted) PIR sensor input pin
@@ -88,8 +104,11 @@ fn main() {
         capture_one_snapshot();
       });
 
-  //loop forever waiting for PIR triggers
-  loop { 
+  //wait around for a while to see if we detect any more motion
+  for watch_time in 0..12 { 
     sleep(Duration::from_secs(5));
   }
+  
+  //enter HALT state
+  safe_shutdown();
 }
