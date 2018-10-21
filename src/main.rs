@@ -63,7 +63,7 @@ fn capture_raspistill(filename: &str) {
     println!("cmd failed {}", status);
   }
   else {
-    println!("wrote {}", filename);
+    println!("{}", filename);
   }
 
 }
@@ -85,8 +85,11 @@ fn safe_shutdown() {
 
 
 fn main() {
+  let now: DateTime<Local> = Local::now();
+  let time_str = now.format("### Restart at %Y%m%d_%H%M%S").to_string();
+  println!("{}", time_str);
+
   let bc  = BoardController::new();
-  println!("Initialized pigpiod.");
   // enable LEDs for illumination
   bc.set_gpio_mode(LED1, GpioMode::Output);
   bc.set_gpio_mode(LED2, GpioMode::Output);
@@ -99,13 +102,12 @@ fn main() {
 
   // start listening for a falling edge on our (inverted) PIR sensor input pin
   bc.add_edge_detector_closure(PIR_INPUT, GpioEdgeDetect::RisingEdge,
-     |gpio, level| {
-        println!("closure! with {} {} ", gpio, level);
+     |_gpio, _level| {
         capture_one_snapshot();
       });
 
   //wait around for a while to see if we detect any more motion
-  for watch_time in 0..12 { 
+  for _watch_time in 0..12 { 
     sleep(Duration::from_secs(5));
   }
   
