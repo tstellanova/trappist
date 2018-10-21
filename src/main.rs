@@ -36,12 +36,12 @@ fn process_trigger() {
 fn set_illumination(bc: &BoardController, enable: bool) {
 
   if enable {
-    bc.gpio_write(LED1, 0);
-    bc.gpio_write(LED2, 0);
-  }
-  else {
     bc.gpio_write(LED1, 1);
     bc.gpio_write(LED2, 1);
+  }
+  else {
+    bc.gpio_write(LED1, 0);
+    bc.gpio_write(LED2, 0);
   }
 }
 
