@@ -8,10 +8,6 @@ authors = ["Todd Stellanova <tstellanova@users.noreply.github.com>"]
 runas = "0.1.4"
 pigrust = "0.1.0"
 chrono = "0.4.0"
-rand = "0.5.5"
-lazy_static = "1.1.0"
-
-
 
 
 [patch.crates-io]
