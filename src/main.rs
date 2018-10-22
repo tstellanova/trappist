@@ -91,6 +91,7 @@ fn main() {
 
   let bc  = BoardController::new();
   // enable LEDs for illumination
+  bc.set_gpio_group_strength(0, 16);
   bc.set_gpio_mode(LED1, GpioMode::Output);
   bc.set_gpio_mode(LED2, GpioMode::Output);
   //PIR input will switch high wnen movement is detected
@@ -107,7 +108,7 @@ fn main() {
       });
 
   //wait around for a while to see if we detect any more motion
-  for _watch_time in 0..12 { 
+  for _watch_time in 0..20 { 
     sleep(Duration::from_secs(5));
   }
   

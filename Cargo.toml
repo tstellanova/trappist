@@ -6,7 +6,7 @@ authors = ["Todd Stellanova <tstellanova@users.noreply.github.com>"]
 
 [dependencies]
 runas = "0.1.4"
-pigrust = "0.1.0"
+pigrust = "0.1.1"
 chrono = "0.4.0"
 
 
